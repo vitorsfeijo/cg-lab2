@@ -190,9 +190,11 @@ bool g_MiddleMouseButtonPressed = false; // Análogo para botão do meio do mous
 // usuário através do mouse (veja função CursorPosCallback()). A posição
 // efetiva da câmera é calculada dentro da função main(), dentro do loop de
 // renderização.
-float g_CameraTheta = 0.0f; // Ângulo no plano ZX em relação ao eixo Z
-float g_CameraPhi = 0.3f;   // Ângulo em relação ao eixo Y
-float g_CameraDistance = 3.5f; // Distância da câmera para a origem
+// g_CameraTheta gira a camera no plano XZ; g_CameraPhi controla sua altura;
+// g_CameraDistance define a distancia da camera ate a origem.
+float g_CameraTheta = 0.0f;    // Orientacao horizontal inicial.
+float g_CameraPhi = 0.6f;       // Altura angular inicial da camera.
+float g_CameraDistance = 20.0f; // Distancia inicial, maior para enquadrar a bandeira.
 
 // Variáveis que controlam rotação do antebraço
 float g_ForearmAngleZ = 0.0f;
@@ -245,7 +247,7 @@ int main(int argc, char* argv[])
     // Criamos uma janela do sistema operacional, com 800 colunas e 600 linhas
     // de pixels, e com título "INF01047 ...".
     GLFWwindow* window;
-    window = glfwCreateWindow(800, 600, "INF01047 - Seu Cartao - Seu Nome", NULL, NULL);
+    window = glfwCreateWindow(800, 600, "INF01047 - 588403 - Vítor Santana Feijó", NULL, NULL);
     if (!window)
     {
         glfwTerminate();
@@ -290,10 +292,6 @@ int main(int argc, char* argv[])
     LoadShadersFromFiles();
 
     // Construímos a representação de objetos geométricos através de malhas de triângulos
-    ObjModel spheremodel("../../data/sphere.obj");
-    ComputeNormals(&spheremodel);
-    BuildTrianglesAndAddToVirtualScene(&spheremodel);
-
     ObjModel bunnymodel("../../data/bunny.obj");
     ComputeNormals(&bunnymodel);
     BuildTrianglesAndAddToVirtualScene(&bunnymodel);
@@ -366,7 +364,7 @@ int main(int argc, char* argv[])
         // Note que, no sistema de coordenadas da câmera, os planos near e far
         // estão no sentido negativo! Veja slides 176-204 do documento Aula_09_Projecoes.pdf.
         float nearplane = -0.1f;  // Posição do "near plane"
-        float farplane  = -10.0f; // Posição do "far plane"
+        float farplane  = -100.0f; // Posição do "far plane"
 
         if (g_UsePerspectiveProjection)
         {
@@ -406,30 +404,147 @@ int main(int argc, char* argv[])
         #define RED_VELVET_SURFACE   4
         #define JADE_SURFACE         6
 
-        // Desenhamos o modelo da esfera
-        model = Matrix_Translate(-2.0f,0.0f,0.0f);
-        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
-        glUniform1i(g_object_id_uniform, SPHERE);
-        glUniform1i(g_surface_type_uniform, RED_VELVET_SURFACE);
-        DrawVirtualObject("the_sphere");
+        // O tempo e usado como parametro comum para todas as animacoes.
+        // Como glfwGetTime() cresce continuamente, as funcoes seno e cosseno
+        // produzem movimentos periodicos e suaves.
+        const float pi = 3.141592f;
+        const float time = static_cast<float>(glfwGetTime());
 
-        // Desenhamos três coelhos com as cores verde, dourada e azul.
-        const int bunny_surfaces[3] = {
-            JADE_SURFACE,
-            GOLD_SURFACE,
-            BLUE_PLASTIC_SURFACE
-        };
-        for (int i = 0; i < 3; ++i)
+        // Frequencia do pulo. Aumentar este valor faz os coelhos pularem mais
+        // vezes por segundo, sem alterar a altura maxima do salto.
+        const float jump_velocity = 5.0f;
+
+        // Desenha uma instancia de coelho com a mesma animacao vertical.
+        // surface escolhe a cor; x e z definem a trajetoria no chao;
+        // heading orienta a frente do coelho; index cria fases diferentes.
+        auto draw_bunny = [&](int surface, float x, float z, float heading, int index)
         {
-            model = Matrix_Translate(2.0f * i,0.0f,0.0f);
+            // A fase diferente impede que todos os coelhos pulem juntos.
+            float jump_time = time + 0.2f * index;
+
+            // A altura varia entre 0 e 0.8: o coelho toca o chao em 0.
+            float bunny_y = 0.4f * (1.0f + sin(jump_velocity * jump_time));
+            float bunny_tilt = 0.0f;
+
+            // O cosseno representa a velocidade vertical: o sinal muda entre
+            // subida e descida. O tilt e zero quando o coelho esta no chao.
+            if (bunny_y > 0.001f)
+                bunny_tilt = 0.35f * cos(jump_velocity * jump_time);
+
+            // A ordem aplica translacao, orientacao na direcao do caminho e,
+            // por ultimo, a inclinacao local do pulo.
+            model = Matrix_Translate(x,bunny_y,z)
+                  * Matrix_Rotate_Y(heading)
+                  * Matrix_Rotate_Z(bunny_tilt);
             glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
             glUniform1i(g_object_id_uniform, BUNNY);
-            glUniform1i(g_surface_type_uniform, bunny_surfaces[i]);
+            glUniform1i(g_surface_type_uniform, surface);
             DrawVirtualObject("the_bunny");
+        };
+
+        // Converte uma posicao normalizada do caminho em coordenadas XZ.
+        // progress = 0 e o inicio do caminho; progress = 1 completa uma volta.
+        // A funcao tambem calcula heading para o coelho olhar para frente.
+        auto sample_path = [&](const float* path_x, const float* path_z, int path_size,
+                               float progress, float& heading)
+        {
+            // Soma os comprimentos das arestas para descobrir o perimetro.
+            float perimeter = 0.0f;
+            for (int i = 0; i < path_size; ++i)
+            {
+                int next = (i + 1) % path_size;
+                float dx = path_x[next] - path_x[i];
+                float dz = path_z[next] - path_z[i];
+                perimeter += sqrt(dx * dx + dz * dz);
+            }
+
+            // Converte o progresso entre 0 e 1 em distancia percorrida.
+            float distance = fmod(progress, 1.0f) * perimeter;
+            for (int i = 0; i < path_size; ++i)
+            {
+                int next = (i + 1) % path_size;
+                float dx = path_x[next] - path_x[i];
+                float dz = path_z[next] - path_z[i];
+                float edge_length = sqrt(dx * dx + dz * dz);
+
+                if (distance <= edge_length)
+                {
+                    // t indica a fracao percorrida na aresta atual.
+                    float t = distance / edge_length;
+
+                    // atan2 fornece a direcao da aresta no plano XZ.
+                    heading = atan2(dx, dz) + pi / 2.0f;
+                    return glm::vec2(
+                        path_x[i] + t * dx,
+                        path_z[i] + t * dz
+                    );
+                }
+
+                distance -= edge_length;
+            }
+
+            heading = 0.0f;
+            return glm::vec2(path_x[0], path_z[0]);
+        };
+
+        // Os coelhos azuis percorrem um circulo usando funcoes trigonometricas.
+        // blue_count controla a quantidade de coelhos e circle_radius controla
+        // a distancia deles ao centro. blue_speed controla a velocidade angular.
+        const int blue_count = 8;
+        const float circle_radius = 2.5f;
+        const float blue_speed = 0.6f; // Velocidade angular dos coelhos azuis.
+        for (int i = 0; i < blue_count; ++i)
+        {
+            // O segundo termo distribui os coelhos igualmente pelo circulo.
+            float angle = blue_speed * time + 2.0f * pi * i / blue_count;
+            float x = circle_radius * cos(angle);
+            float z = circle_radius * sin(angle);
+            float heading = -angle + pi / 2.0f;
+            draw_bunny(BLUE_PLASTIC_SURFACE, x, z, heading, i);
+        }
+
+        // Os quatro vertices definem o losango no plano XZ. Alterar os valores
+        // absolutos de diamond_x ou diamond_z aumenta ou diminui a figura.
+        // yellow_speed controla a velocidade ao longo do perimetro.
+        const int yellow_count = 14;
+        const float yellow_speed = 0.08f; // Velocidade ao longo do losango.
+        const float diamond_x[4] = { 0.0f, -7.0f, 0.0f, 7.0f };
+        const float diamond_z[4] = { 5.0f, 0.0f, -5.0f, 0.0f };
+        int bunny_index = blue_count;
+        for (int i = 0; i < yellow_count; ++i)
+        {
+            float heading = 0.0f;
+            glm::vec2 position = sample_path(
+                diamond_x, diamond_z, 4,
+                // A fracao inicial separa os coelhos; o termo com time anima todos.
+                yellow_speed * time + (i + 0.5f) / yellow_count,
+                heading
+            );
+            draw_bunny(GOLD_SURFACE, position.x, position.y, heading, bunny_index++);
+        }
+
+        // Os quatro vertices definem o retangulo no plano XZ. Alterar os valores
+        // absolutos de rectangle_x ou rectangle_z muda suas dimensoes.
+        // green_speed controla a velocidade ao longo do perimetro.
+        const int green_count = 24;
+        const float green_speed = 0.06f; // Velocidade ao longo do retangulo.
+        const float rectangle_x[4] = { -9.0f, 9.0f, 9.0f, -9.0f };
+        const float rectangle_z[4] = { 6.0f, 6.0f, -6.0f, -6.0f };
+        bunny_index = blue_count + yellow_count;
+        for (int i = 0; i < green_count; ++i)
+        {
+            float heading = 0.0f;
+            glm::vec2 position = sample_path(
+                rectangle_x, rectangle_z, 4,
+                // A fracao inicial distribui os coelhos igualmente no retangulo.
+                green_speed * time + (i + 0.5f) / green_count,
+                heading
+            );
+            draw_bunny(JADE_SURFACE, position.x, position.y, heading, bunny_index++);
         }
 
         // Desenhamos o plano do chão
-        model = Matrix_Translate(0.0f,-1.0f,0.0f) * Matrix_Scale(4.0f,1.0f,4.0f);
+        model = Matrix_Translate(0.0f,-1.0f,0.0f) * Matrix_Scale(20.0f,1.0f,20.0f);
         glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
         glUniform1i(g_object_id_uniform, PLANE);
         DrawVirtualObject("the_plane");
@@ -1104,7 +1219,7 @@ void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
 {
     // Atualizamos a distância da câmera para a origem utilizando a
     // movimentação da "rodinha", simulando um ZOOM.
-    g_CameraDistance -= 0.1f*yoffset;
+    g_CameraDistance -= 1.8f*yoffset;
 
     // Uma câmera look-at nunca pode estar exatamente "em cima" do ponto para
     // onde ela está olhando, pois isto gera problemas de divisão por zero na

@@ -1,0 +1,7 @@
+# ninja log v6
+28	442	8117241039886274	CMakeFiles/main.dir/src/correcao.cpp.obj	48562cf1e37194d8
+72	2811	8117241040344926	CMakeFiles/main.dir/src/glad.c.obj	d128e4fb17106f6c
+40	3727	8117241040068438	CMakeFiles/main.dir/src/textrendering.cpp.obj	3d2aa5da9e5ccb91
+20	7145	8117241039742967	CMakeFiles/main.dir/src/main.cpp.obj	fb410dfa8e786af1
+57	9764	8117241040217324	CMakeFiles/main.dir/src/tiny_obj_loader.cpp.obj	7ec106867fbe7c9b
+9766	10232	8117241137241068	C:/Users/vitor/Documents/uni/cg/cg-lab2/bin/Debug/main.exe	90e85aacc3a349b8

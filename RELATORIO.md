@@ -6,8 +6,8 @@
 
 ## Dados do aluno
 
-- **Cartão UFRGS**: <mark>`<preencher>`</mark>
-- **Nome**: <mark>`<preencher>`</mark>
+- **Cartão UFRGS**: 588403
+- **Nome**: Vítor Santana Feijó
 
 ## Passos que eu segui para resolver o problema especificado (em formato de *"prompt"*)
 
@@ -30,20 +30,39 @@
 > - Novamente, lembre-se que você *não pode utilizar ferramentas
 >   de IA para escrever este relatório*
 
-<mark>`<preencher>`</mark>
+
+[os prompts detalhados estão aqui](PROMPTS.md)
+
+1. Faça o coelho realizar transformações para que as coordenadas em Y(salto) mude em relação ao tempo entre um intervalo de 0 até 0.8.
+`
+bunny_y = 0.4f * (1.0f + sin(jump_velocity * jump_time));
+`
+2. Faça o coelho realizar transformações para que as coordenadas em Z(tilt durante o salto) mude em relação ao tempo entre um intervalo de -0.35 até 0.35.
+`
+bunny_tilt = 0.35f * cos(jump_velocity * jump_time);
+`
+3. Faça o coelho realizar transformações para que as coordenadas em Y mude em relação ao tempo que mude o seu ângulo da direção frontal do coelho.
+`
+float heading = -angle + 3.141592f / 2.0f;
+`
+4. Faça 8 coelhos azuis ficarem andando em um circulo azul, 14 amarelos andando em um formato de losango fora do círculo e 24 verdes andando em forma de retangulo fora do retangulo. Todos mantendo as transformações anteriores.
+
+5. Arrume as constantes para que fique igual a do video
 
 ## Principais dificuldades encontradas durante o desenvolvimento (formato livre)
 
-<mark>`<preencher>`</mark>
+- O começo foi mais desafiador pelo pouco entendimento da biblioteca opengl
+- O mudar o ângulo fronta do coelho para que ele fique "olhando para frente".
+
 
 ## Você acha que conseguiu resolver o problema de forma adequada?
 
-<mark>`<preencher>`</mark>
+Acredito que sim, o meu trabalho está bastante semelhante ao video.
 
 ## Se você quiser compartilhar mais alguma coisa, coloque aqui:
 
-<mark>`<preencher>`</mark>
+
 
 ## Se você possui alguma sugestão para o professor sobre esta atividade, coloque aqui:
 
-<mark>`<preencher>`</mark>
+
