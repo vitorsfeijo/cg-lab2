@@ -47,7 +47,9 @@ float heading = -angle + 3.141592f / 2.0f;
 `
 4. Faça 8 coelhos azuis ficarem andando em um circulo azul, 14 amarelos andando em um formato de losango fora do círculo e 24 verdes andando em forma de retangulo fora do retangulo. Todos mantendo as transformações anteriores.
 
-5. Arrume as constantes para que fique igual a do video
+5. Achate a bola em y(e diminua o tamanho geral da bola) e faça ela se mover junto com os coelhos.
+
+6. Arrume as constantes para que fique igual a do video
 
 ## Principais dificuldades encontradas durante o desenvolvimento (formato livre)
 

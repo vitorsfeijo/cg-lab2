@@ -296,6 +296,10 @@ int main(int argc, char* argv[])
     ComputeNormals(&bunnymodel);
     BuildTrianglesAndAddToVirtualScene(&bunnymodel);
 
+    ObjModel spheremodel("../../data/sphere.obj");
+    ComputeNormals(&spheremodel);
+    BuildTrianglesAndAddToVirtualScene(&spheremodel);
+
     ObjModel planemodel("../../data/plane.obj");
     ComputeNormals(&planemodel);
     BuildTrianglesAndAddToVirtualScene(&planemodel);
@@ -440,6 +444,15 @@ int main(int argc, char* argv[])
             glUniform1i(g_object_id_uniform, BUNNY);
             glUniform1i(g_surface_type_uniform, surface);
             DrawVirtualObject("the_bunny");
+
+            // A esfera e deformada e posicionada no topo da cabeca do coelho.
+            model = model
+                * Matrix_Translate(-0.68f, 0.5f, 0.2f)
+                * Matrix_Scale(0.5f, 0.2f, 0.5f);
+            glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+            glUniform1i(g_object_id_uniform, SPHERE);
+            glUniform1i(g_surface_type_uniform, RED_VELVET_SURFACE);
+            DrawVirtualObject("the_sphere");
         };
 
         // Converte uma posicao normalizada do caminho em coordenadas XZ.

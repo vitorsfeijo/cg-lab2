@@ -73,3 +73,5 @@ Resumo: A posicao inicial da camera e controlada por `g_CameraTheta`, `g_CameraP
 18. voce consegue fazer um arquivo chamado prompts.md com todos os prompts que eu te dei nessa conversa em ordem?
 
 Resumo: Foi criado este arquivo com os prompts da conversa em ordem cronologica.
+
+19. consegue deformar a bola do arquivo e colocar ela na cabeça de todos os coelhos da imagem?
